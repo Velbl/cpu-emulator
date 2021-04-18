@@ -39,7 +39,7 @@ struct IndexRegisters
 
 struct Mem
 {
-	Byte  b_data[MEM_RANGE];
+	Byte  data[MEM_RANGE];
 
 	void Initialize()
 	{
@@ -47,7 +47,7 @@ struct Mem
 
 		for(byte_cnt = 0u; byte_cnt < MEM_RANGE; byte_cnt++)
 		{
-			b_data[byte_cnt] = 0u;
+			data[byte_cnt] = 0u;
 		}
 	}
 
@@ -55,7 +55,7 @@ struct Mem
 	Byte operator[](uint32_t address) const
 	{
 		// assert here address is < MEM_RANGE
-		return b_data[address];
+		return data[address];
 	}
 
 	// write 1 byte
@@ -66,7 +66,15 @@ struct Mem
 	Byte& operator[](uint32_t address)
 	{
 		// assert here address is < MEM_RANGE
-		return b_data[address];
+		return data[address];
+	}
+
+	void WriteWord(uint8_t& cycles, Word value, uint32_t address)
+	{
+		data[address]     = value & 0xFF;
+		data[address + 1] = (value >> 8);
+
+		cycles-=2;
 	}
 };
 
@@ -92,12 +100,12 @@ struct CPU
 	static constexpr Byte INS_LDA_IM  = 0xA9;  // load accumulator immediate
 	static constexpr Byte INS_LDA_ZP  = 0xA5;  // load accumulator zero page
 	static constexpr Byte INS_LDA_ZPX = 0xB5;  // load accumulator zero page x
-	static constexpr Byte INS_JST     = 0x20;  // jump to subroutine
+	static constexpr Byte INS_JSR     = 0x20;  // jump to subroutine
 
 	Byte CheckEndianness()
 	{
 		int  num = 1;
-		printf("Checking for system system...\n");
+		printf("Checking for system endianness...\n");
 
 		if (*(char *)&num == 1)
 		{
@@ -133,22 +141,27 @@ struct CPU
 	}
 
 	// conversion from big endian to little endian in one word (16bit)
-	void SwapBytesInWord(Word* w_data)
+	void SwapBytesInWord(Word& w_data)
 	{
-		uint8_t FirstByte, SecondByte;
+		uint8_t LowByte, HighByte;
 
-		FirstByte  = (*w_data & 0xFF00) >> 8;
-		SecondByte = (*w_data & 0x00FF) >> 0;
+		printf("Conversion from big endian to little endian started...\n");
 
-		printf("Before conversion (big endian): %x\n", *w_data);
+		LowByte  = w_data & 0xFF;
+		HighByte = (w_data >> 8) & 0xFF;
 
-		(void)memset((void*)w_data    , FirstByte , sizeof(Byte));
-		(void)memset((void*)w_data + 1, SecondByte, sizeof(Byte));
+		printf(" Before conversion (big endian): %x\n", w_data);
+		printf(" LowByte:  %x   \n", LowByte);
+		printf(" HighByte: %x   \n", HighByte);
 
-		printf("FirstByte:  %x   \n", FirstByte);
-		printf("SecondByte: %x   \n", SecondByte);
+		LowByte  = (w_data >> 8) & 0xFF;
+		HighByte = w_data & 0xFF;
 
-		printf("After conversion (little endian): %x\n", *w_data);
+		w_data = LowByte | (HighByte << 8);
+
+		printf(" After conversion (little endian): %x\n", w_data);
+		printf(" LowByte:  %x   \n", LowByte);
+		printf(" HighByte: %x   \n", HighByte);
 
 	}
 
@@ -168,7 +181,7 @@ struct CPU
 
 		if ( system == BIG_ENDIAN_SYSTEM )
 		{
-			SwapBytesInWord(&w_data);
+			SwapBytesInWord(w_data);
 		}
 
 		cycles-=2;
@@ -213,10 +226,17 @@ struct CPU
 				IR.A = ReadByte(cycles, zero_page_address, memory);
 				LDASetStatus();
 				break;
-			case INS_JST:
+			case INS_JSR:
+			{
+				Word subroutine_address = FetchWord(cycles, memory);
+				memory.WriteWord(cycles, PC-1, SP);
+				SP++;
+				PC = subroutine_address;
+				cycles--;
 				break;
+			}
 			default:
-				printf("Instruction not handled %d \n.", instruction);
+				printf("Instruction not handled %d \n", instruction);
 				break;
 			}
 		}
@@ -230,15 +250,14 @@ int main()
 
 	cpu.Reset(memory);
 
-	cpu.CheckEndianness();
-
 	// start - inline a little program
-	memory[0xFFFC] = CPU::INS_LDA_ZP;
+	memory[0xFFFC] = CPU::INS_JSR;
 	memory[0xFFFD] = 0x42;
-	memory[0x0042] = 0x84;
+	memory[0xFFFE] = 0x42;
+	memory[0x4242] = CPU::INS_LDA_IM;
+	memory[0x4243] = 0x84;
 	// end - inline a little program
 
-	cpu.Execute(3, memory);
-
+	cpu.Execute(6, memory);
 	return 0;
 }
