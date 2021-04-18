@@ -72,7 +72,7 @@ struct Mem
 	void WriteWord(uint8_t& cycles, Word value, uint32_t address)
 	{
 		data[address]     = value & 0xFF;
-		data[address + 1] = (value >> 8);
+		data[address + 1] = (value >> 8) & 0xFF;
 
 		cycles-=2;
 	}
@@ -165,7 +165,7 @@ struct CPU
 
 	}
 
-	Byte FetchWord(uint8_t& cycles, Mem& memory)
+	Word FetchWord(uint8_t& cycles, Mem& memory)
 	{
 		Byte system;
 		system = CheckEndianness();
@@ -185,7 +185,7 @@ struct CPU
 		}
 
 		cycles-=2;
-		return b_data;
+		return w_data;
 	}
 
 	Byte ReadByte(uint8_t& cycles,Byte zero_page_address, Mem& memory)
@@ -258,6 +258,6 @@ int main()
 	memory[0x4243] = 0x84;
 	// end - inline a little program
 
-	cpu.Execute(6, memory);
+	cpu.Execute(8, memory);
 	return 0;
 }
