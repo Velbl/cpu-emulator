@@ -1,0 +1,49 @@
+			C++ Core Guidelines:
+*Look for pointer arguments.
+*Look for run-time checks for range violations.
+*Look at pointers and arrays: Do range-checking early and not repeatedly.
+*Look at conversions: Eliminate or mark narrowing conversions.
+*Look for unchecked values coming from input.
+*Look for structured data (objects of classes with invariants) being converted into strings.
+*Use header files to represent interfaces and to emphasize logical structure.
+*Prefer the quoted form of #include for files relative to the including file and the angle bracket form everywhere else.
+*Use using namespace directives for transition, for foundation libraries (such as std), or within a local scope (only):
+	#include <string>
+	#include <vector>
+	#include <iostream>
+	#include <memory>
+	#include <algorithm>
+
+	using namespace std;
+* Don’t write using namespace at global scope in a header file.
+*Use #include guards for all .h files.
+*Header files should be self-contained.
+
+    C++ convention:
+	*Make the length of a name roughly proportional to the length of its scope.
+		- Global variable (big scope) -> more detailed name.
+	*Variable names - separate words with underscores for example 'variable_name'.
+	*Use ALL_CAPS for macro names only, for example 'SIZE'.
+	*When declaring a class use the following order:
+		-types: classes, enums, and aliases (using)
+		-constructors, assignments, destructor
+		-functions
+		-data
+	*Use the public before protected before private order.
+	*Capitalize the names of your user-defined types to distinguish them from standards-library types.
+	*Do not capitalize function names.
+	*Don’t use void as an argument type.
+		-It’s verbose and only needed where C compatibility matters.
+	* Use conventional const notation.
+		-const int x = 7;    // OK
+		-int const y = 9;    // bad
+
+		-const int *const p = nullptr;   // OK, constant pointer to constant int
+		-int const *const p = nullptr;   // bad, constant pointer to constant int
+	*If you must use C for interfaces, use C++ in the calling code using such interfaces.
+		// in C:
+		double sqrt(double);
+
+		// in C++:
+		extern "C" double sqrt(double);
+	
